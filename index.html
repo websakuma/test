@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>流れる文字</title>
+<style>
+:root{color-scheme:light dark;--bg:light-dark(#f7f7f5,#111);--panel:light-dark(#fff,#1b1b1b);--text:light-dark(#222,#f5f5f5);--muted:light-dark(#777,#aaa);--line:light-dark(#ddd,#333);--accent:light-dark(#111,#fff)}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI","Noto Sans JP",sans-serif;background:var(--bg);color:var(--text)}
+#app{min-height:100vh;background-color:var(--bg)}
+header{border-bottom:1px solid var(--line)}.top{height:64px;display:flex;align-items:center;justify-content:center}.brand{font-weight:800;font-size:20px;letter-spacing:.08em}
+.main{width:min(900px,calc(100% - 32px));margin:auto;padding:40px 0 70px}.intro{text-align:center;margin-bottom:24px}.intro h1{font-size:clamp(24px,5vw,38px);margin:0 0 8px}.intro p{margin:0;color:var(--muted)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px}.composer{padding:12px;display:flex;gap:10px}.composer input{flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--text);font:inherit;font-size:18px;padding:10px}.primary{border:0;background:var(--accent);color:light-dark(#fff,#111);border-radius:12px;padding:10px 18px;font-weight:700;cursor:pointer}
+.stage{position:relative;height:260px;margin-top:24px;overflow:hidden;border:1px solid var(--line);border-radius:18px;background:var(--panel);display:flex;align-items:center}.empty{text-align:center;width:100%;color:var(--muted);font-size:15px}.stream{position:absolute;left:100%;white-space:nowrap;font-size:clamp(30px,6vw,64px);font-weight:700;animation:move 8s linear forwards}
+.controls{display:flex;justify-content:center;margin-top:14px}.secondary{border:1px solid var(--line);background:transparent;color:var(--text);border-radius:10px;padding:9px 15px;cursor:pointer}.hint{text-align:center;color:var(--muted);font-size:13px;margin-top:18px}
+@keyframes move{from{transform:translateX(0)}to{transform:translateX(calc(-100vw - 100%))}}
+@media(prefers-reduced-motion:reduce){.stream{animation-duration:14s}}@media(max-width:520px){.main{width:calc(100% - 20px);padding-top:28px}.composer input{font-size:16px}.stage{height:220px}}
+</style>
+</head>
+<body>
+<div id="app">
+<header><div class="top"><div class="brand">流れる文字</div></div></header>
+<div class="main">
+<section class="intro"><h1>文字を、流そう。</h1><p>入力した文字が、右から左へ流れていきます。</p></section>
+<main>
+<form class="card composer" id="form"><input id="draft" maxlength="80" autocomplete="off" placeholder="流したい文字を入力してください" aria-label="流したい文字"><button class="primary" type="submit">流す</button></form><section class="stage" id="stage"><div class="empty" id="empty">ここに文字が流れます</div></section><div class="controls"><button class="secondary" type="button" id="clearBtn">画面をクリア</button></div><p class="hint">Enterキーでも流せます。</p>
+<div id="feed" style="display:none"></div>
+</main>
+<aside class="side" style="display:none"></aside>
+</div></div>
+<script>
+const form=document.getElementById('form'),draft=document.getElementById('draft'),stage=document.getElementById('stage'),empty=document.getElementById('empty'),clearBtn=document.getElementById('clearBtn');
+form.addEventListener('submit',e=>{e.preventDefault();const value=draft.value.trim();if(!value)return;empty.style.display='none';const item=document.createElement('div');item.className='stream';item.textContent=value;item.addEventListener('animationend',()=>item.remove());stage.appendChild(item);draft.value='';draft.focus()});
+clearBtn.addEventListener('click',()=>{stage.querySelectorAll('.stream').forEach(x=>x.remove());empty.style.display='block'});
+</script>
+</body></html>
