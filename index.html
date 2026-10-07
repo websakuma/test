@@ -27,7 +27,8 @@
       margin: 30px 0;
     }
 
-    input {
+    input,
+    select {
       width: 100%;
       box-sizing: border-box;
       padding: 12px;
@@ -64,6 +65,18 @@
       font-size: 12px;
       color: #888;
     }
+
+    .expires {
+      margin-top: 4px;
+      font-size: 12px;
+      color: #888;
+    }
+
+    .time-label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
   </style>
 </head>
 
@@ -73,7 +86,7 @@
 
   <p class="description">
     20文字以内でメッセージを送ろう。<br>
-    投稿は1分後に消えます。
+    投稿の表示時間は15分〜24時間から選べます。
   </p>
 
   <form id="messageForm">
@@ -93,6 +106,12 @@
       placeholder="メッセージ（20文字以内）"
       required
     >
+
+    <label class="time-label" for="durationSelect">
+      表示時間
+    </label>
+
+    <select id="durationSelect"></select>
 
     <button type="submit">
       送信
@@ -136,6 +155,9 @@
     const messageInput =
       document.getElementById("messageInput");
 
+    const durationSelect =
+      document.getElementById("durationSelect");
+
     const messageList =
       document.getElementById("messageList");
 
@@ -143,17 +165,60 @@
       document.getElementById("status");
 
 
+    // 15分刻みで最大24時間まで選択肢を作る
+    for (let minutes = 15; minutes <= 1440; minutes += 15) {
+
+      const option =
+        document.createElement("option");
+
+      option.value = minutes;
+
+      const hours =
+        Math.floor(minutes / 60);
+
+      const remainingMinutes =
+        minutes % 60;
+
+
+      if (hours === 0) {
+
+        option.textContent =
+          `${remainingMinutes}分`;
+
+      } else if (remainingMinutes === 0) {
+
+        option.textContent =
+          `${hours}時間`;
+
+      } else {
+
+        option.textContent =
+          `${hours}時間${remainingMinutes}分`;
+
+      }
+
+
+      durationSelect.appendChild(option);
+
+    }
+
+
+    // 初期値を1時間にする
+    durationSelect.value = "60";
+
+
     // メッセージ一覧を取得
     async function loadMessages() {
 
-      const oneMinuteAgo =
-        new Date(Date.now() - 60 * 1000).toISOString();
+      const now =
+        new Date().toISOString();
+
 
       const { data, error } =
         await supabaseClient
           .from("message")
           .select("*")
-          .gte("created_at", oneMinuteAgo)
+          .gt("expires_at", now)
           .order("created_at", {
             ascending: false
           });
@@ -215,14 +280,67 @@
         date.className = "date";
 
         date.textContent =
+          "投稿：" +
           new Date(
             row.created_at
           ).toLocaleString("ja-JP");
 
 
+        // 残り時間
+        const expires =
+          document.createElement("div");
+
+        expires.className = "expires";
+
+
+        const remainingMs =
+          new Date(row.expires_at).getTime()
+          - Date.now();
+
+        const remainingMinutes =
+          Math.max(
+            0,
+            Math.ceil(
+              remainingMs / 1000 / 60
+            )
+          );
+
+
+        if (remainingMinutes >= 60) {
+
+          const hours =
+            Math.floor(
+              remainingMinutes / 60
+            );
+
+          const minutes =
+            remainingMinutes % 60;
+
+
+          if (minutes === 0) {
+
+            expires.textContent =
+              `あと約${hours}時間で消えます`;
+
+          } else {
+
+            expires.textContent =
+              `あと約${hours}時間${minutes}分で消えます`;
+
+          }
+
+        } else {
+
+          expires.textContent =
+            `あと約${remainingMinutes}分で消えます`;
+
+        }
+
+
         box.appendChild(name);
         box.appendChild(text);
         box.appendChild(date);
+        box.appendChild(expires);
 
         messageList.appendChild(box);
 
@@ -244,6 +362,9 @@
 
         const message =
           messageInput.value.trim();
+
+        const durationMinutes =
+          Number(durationSelect.value);
 
 
         if (!name || !message) {
@@ -269,6 +390,27 @@
         }
 
 
+        if (
+          durationMinutes < 15 ||
+          durationMinutes > 1440 ||
+          durationMinutes % 15 !== 0
+        ) {
+
+          status.textContent =
+            "表示時間が正しくありません。";
+
+          return;
+        }
+
+
+        // 現在時刻＋選択した時間
+        const expiresAt =
+          new Date(
+            Date.now()
+            + durationMinutes * 60 * 1000
+          ).toISOString();
+
+
         status.textContent =
           "送信中...";
 
@@ -278,7 +420,8 @@
             .from("message")
             .insert({
               name: name,
-              message: message
+              message: message,
+              expires_at: expiresAt
             });
 
 
@@ -309,10 +452,10 @@
     loadMessages();
 
 
-    // 1秒ごとにメッセージ一覧を更新
+    // 10秒ごとに一覧を更新
     setInterval(() => {
       loadMessages();
-    }, 1000);
+    }, 10000);
 
   </script>
 
