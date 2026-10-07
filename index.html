@@ -91,6 +91,25 @@
       font-size: 12px;
       color: #888;
     }
+
+    .like-area {
+      margin-top: 12px;
+    }
+    
+    .like-button {
+      width: auto;
+      padding: 6px 12px;
+      font-size: 14px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: white;
+      cursor: pointer;
+    }
+    
+    .like-button:hover {
+      background: #f5f5f5;
+    }
+    
   </style>
 </head>
 
@@ -323,12 +342,78 @@
         }
 
 
-        box.appendChild(name);
-        box.appendChild(text);
-        box.appendChild(date);
-        box.appendChild(expires);
-
-        messageList.appendChild(box);
+      // いいねエリア
+      const likeArea =
+        document.createElement("div");
+      
+      likeArea.className = "like-area";
+      
+      
+      const likeButton =
+        document.createElement("button");
+      
+      likeButton.type = "button";
+      likeButton.className = "like-button";
+      
+      likeButton.textContent =
+        `👍 いいね ${row.likes ?? 0}`;
+      
+      
+      // いいねボタンを押したとき
+      likeButton.addEventListener(
+        "click",
+        async () => {
+      
+          likeButton.disabled = true;
+      
+          const currentLikes =
+            row.likes ?? 0;
+      
+          const newLikes =
+            currentLikes + 1;
+      
+      
+          const { error } =
+            await supabaseClient
+              .from("message")
+              .update({
+                likes: newLikes
+              })
+              .eq("id", row.id);
+      
+      
+          if (error) {
+      
+            console.error(error);
+      
+            likeButton.disabled = false;
+      
+            return;
+          }
+      
+      
+          // 画面上の数字も更新
+          row.likes = newLikes;
+      
+          likeButton.textContent =
+            `👍 いいね ${newLikes}`;
+      
+          likeButton.disabled = false;
+      
+        }
+      );
+      
+      
+      likeArea.appendChild(likeButton);
+      
+      
+      box.appendChild(name);
+      box.appendChild(text);
+      box.appendChild(likeArea);
+      box.appendChild(date);
+      box.appendChild(expires);
+      
+      messageList.appendChild(box);
 
       });
 
