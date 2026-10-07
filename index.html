@@ -342,79 +342,113 @@
         }
 
 
-      // いいねエリア
-      const likeArea =
-        document.createElement("div");
-      
-      likeArea.className = "like-area";
-      
-      
-      const likeButton =
-        document.createElement("button");
-      
-      likeButton.type = "button";
-      likeButton.className = "like-button";
-      
-      likeButton.textContent =
-        `👍 いいね ${row.likes ?? 0}`;
-      
-      
-      // いいねボタンを押したとき
-      likeButton.addEventListener(
-        "click",
-        async () => {
-      
-          likeButton.disabled = true;
-      
-          const currentLikes =
-            row.likes ?? 0;
-      
-          const newLikes =
-            currentLikes + 1;
-      
-      
-          const { error } =
-            await supabaseClient
-              .from("message")
-              .update({
-                likes: newLikes
-              })
-              .eq("id", row.id);
-      
-      
-          if (error) {
-      
-            console.error(error);
-      
-            likeButton.disabled = false;
-      
-            return;
-          }
-      
-      
-          // 画面上の数字も更新
-          row.likes = newLikes;
-      
-          likeButton.textContent =
-            `👍 いいね ${newLikes}`;
-      
-          likeButton.disabled = false;
-      
-        }
-      );
-      
-      
-      likeArea.appendChild(likeButton);
-      
-      
-      box.appendChild(name);
-      box.appendChild(text);
-      box.appendChild(likeArea);
-      box.appendChild(date);
-      box.appendChild(expires);
-      
-      messageList.appendChild(box);
+// いいねエリア
+const likeArea =
+  document.createElement("div");
 
+likeArea.className = "like-area";
+
+
+const likeButton =
+  document.createElement("button");
+
+likeButton.type = "button";
+likeButton.className = "like-button";
+
+
+// この投稿にいいね済みか確認
+const likeKey =
+  `liked_message_${row.id}`;
+
+const alreadyLiked =
+  localStorage.getItem(likeKey) === "true";
+
+
+function updateLikeButton() {
+
+  likeButton.textContent =
+    `👍 ${row.likes ?? 0}`;
+
+  if (
+    localStorage.getItem(likeKey) === "true"
+  ) {
+
+    likeButton.disabled = true;
+  }
+
+}
+
+
+updateLikeButton();
+
+
+// いいねボタンを押したとき
+likeButton.addEventListener(
+  "click",
+  async () => {
+
+    // すでに押していたら何もしない
+    if (
+      localStorage.getItem(likeKey) === "true"
+    ) {
+      return;
+    }
+
+
+    likeButton.disabled = true;
+
+
+    const currentLikes =
+      row.likes ?? 0;
+
+    const newLikes =
+      currentLikes + 1;
+
+
+    const { error } =
+      await supabaseClient
+        .from("message")
+        .update({
+          likes: newLikes
+        })
+        .eq("id", row.id);
+
+
+    if (error) {
+
+      console.error(error);
+
+      likeButton.disabled = false;
+
+      return;
+    }
+
+
+    // いいね済みとしてブラウザに保存
+    localStorage.setItem(
+      likeKey,
+      "true"
+    );
+
+
+    row.likes = newLikes;
+
+    updateLikeButton();
+
+  }
+);
+
+
+likeArea.appendChild(likeButton);
+
+
+box.appendChild(name);
+box.appendChild(text);
+box.appendChild(likeArea);
+box.appendChild(date);
+box.appendChild(expires);
+
+messageList.appendChild(box);
       });
 
     }
