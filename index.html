@@ -27,13 +27,31 @@
       margin: 30px 0;
     }
 
-    input,
-    select {
+    input {
       width: 100%;
       box-sizing: border-box;
       padding: 12px;
       font-size: 16px;
       margin-bottom: 10px;
+    }
+
+    .time-label {
+      display: block;
+      margin: 5px 0 8px;
+      font-size: 14px;
+    }
+
+    .time-inputs {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 15px;
+    }
+
+    .time-inputs input {
+      width: 90px;
+      margin-bottom: 0;
+      text-align: center;
     }
 
     button {
@@ -71,12 +89,6 @@
       font-size: 12px;
       color: #888;
     }
-
-    .time-label {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 14px;
-    }
   </style>
 </head>
 
@@ -86,7 +98,7 @@
 
   <p class="description">
     20文字以内でメッセージを送ろう。<br>
-    投稿の表示時間は15分〜24時間から選べます。
+    投稿の表示時間は最大24時間です。
   </p>
 
   <form id="messageForm">
@@ -107,11 +119,35 @@
       required
     >
 
-    <label class="time-label" for="durationSelect">
+    <label class="time-label">
       表示時間
     </label>
 
-    <select id="durationSelect"></select>
+    <div class="time-inputs">
+
+      <input
+        id="hoursInput"
+        type="number"
+        min="0"
+        max="24"
+        value="1"
+        inputmode="numeric"
+        aria-label="表示時間"
+      >
+      <span>時間</span>
+
+      <input
+        id="minutesInput"
+        type="number"
+        min="0"
+        max="59"
+        value="0"
+        inputmode="numeric"
+        aria-label="表示分"
+      >
+      <span>分</span>
+
+    </div>
 
     <button type="submit">
       送信
@@ -155,56 +191,17 @@
     const messageInput =
       document.getElementById("messageInput");
 
-    const durationSelect =
-      document.getElementById("durationSelect");
+    const hoursInput =
+      document.getElementById("hoursInput");
+
+    const minutesInput =
+      document.getElementById("minutesInput");
 
     const messageList =
       document.getElementById("messageList");
 
     const status =
       document.getElementById("status");
-
-
-    // 15分刻みで最大24時間まで選択肢を作る
-    for (let minutes = 15; minutes <= 1440; minutes += 15) {
-
-      const option =
-        document.createElement("option");
-
-      option.value = minutes;
-
-      const hours =
-        Math.floor(minutes / 60);
-
-      const remainingMinutes =
-        minutes % 60;
-
-
-      if (hours === 0) {
-
-        option.textContent =
-          `${remainingMinutes}分`;
-
-      } else if (remainingMinutes === 0) {
-
-        option.textContent =
-          `${hours}時間`;
-
-      } else {
-
-        option.textContent =
-          `${hours}時間${remainingMinutes}分`;
-
-      }
-
-
-      durationSelect.appendChild(option);
-
-    }
-
-
-    // 初期値を1時間にする
-    durationSelect.value = "60";
 
 
     // メッセージ一覧を取得
@@ -255,7 +252,6 @@
         box.className = "message";
 
 
-        // 名前
         const name =
           document.createElement("div");
 
@@ -265,7 +261,6 @@
           row.name || "名無し";
 
 
-        // メッセージ
         const text =
           document.createElement("div");
 
@@ -273,7 +268,6 @@
           row.message;
 
 
-        // 投稿日時
         const date =
           document.createElement("div");
 
@@ -286,7 +280,6 @@
           ).toLocaleString("ja-JP");
 
 
-        // 残り時間
         const expires =
           document.createElement("div");
 
@@ -306,33 +299,24 @@
           );
 
 
-        if (remainingMinutes >= 60) {
+        const remainingHours =
+          Math.floor(
+            remainingMinutes / 60
+          );
 
-          const hours =
-            Math.floor(
-              remainingMinutes / 60
-            );
-
-          const minutes =
-            remainingMinutes % 60;
+        const minutes =
+          remainingMinutes % 60;
 
 
-          if (minutes === 0) {
+        if (remainingHours > 0) {
 
-            expires.textContent =
-              `あと約${hours}時間で消えます`;
-
-          } else {
-
-            expires.textContent =
-              `あと約${hours}時間${minutes}分で消えます`;
-
-          }
+          expires.textContent =
+            `あと約${remainingHours}時間${minutes}分で消えます`;
 
         } else {
 
           expires.textContent =
-            `あと約${remainingMinutes}分で消えます`;
+            `あと約${minutes}分で消えます`;
 
         }
 
@@ -363,8 +347,11 @@
         const message =
           messageInput.value.trim();
 
-        const durationMinutes =
-          Number(durationSelect.value);
+        const hours =
+          Number(hoursInput.value);
+
+        const minutes =
+          Number(minutesInput.value);
 
 
         if (!name || !message) {
@@ -391,19 +378,43 @@
 
 
         if (
-          durationMinutes < 15 ||
-          durationMinutes > 1440 ||
-          durationMinutes % 15 !== 0
+          !Number.isInteger(hours) ||
+          !Number.isInteger(minutes) ||
+          hours < 0 ||
+          hours > 24 ||
+          minutes < 0 ||
+          minutes > 59
         ) {
 
           status.textContent =
-            "表示時間が正しくありません。";
+            "表示時間を正しく入力してください。";
 
           return;
         }
 
 
-        // 現在時刻＋選択した時間
+        const durationMinutes =
+          hours * 60 + minutes;
+
+
+        if (durationMinutes < 1) {
+
+          status.textContent =
+            "表示時間は1分以上にしてください。";
+
+          return;
+        }
+
+
+        if (durationMinutes > 1440) {
+
+          status.textContent =
+            "表示時間は24時間以内にしてください。";
+
+          return;
+        }
+
+
         const expiresAt =
           new Date(
             Date.now()
