@@ -253,7 +253,12 @@ const oneMinuteAgo =
 
     // 最初に一覧を読み込む
     loadMessages();
-
+    
+    // 1秒ごとにメッセージ一覧を更新
+    setInterval(() => {
+      loadMessages();
+    }, 1000);
+        
   </script>
 
 </body>
